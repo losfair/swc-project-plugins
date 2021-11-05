@@ -342,7 +342,7 @@ jobs:
           docker tag ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine builder
       - name: Install swc devtool
         run: |
-          cargo install --git https://github.com/swc-project/swd.git --branch init
+          ./scripts/ci/install-swc-dev.sh
       - name: Build
         shell: bash
         run: swd plugin build --package --release
@@ -390,7 +390,7 @@ jobs:
           sudo apt-get install gcc-aarch64-linux-gnu -y
       - name: Install swc devtool
         run: |
-          cargo install --git https://github.com/swc-project/swd.git --branch init
+          ./scripts/ci/install-swc-dev.sh
       - name: Build
         shell: bash
         run: swd plugin build --package --release --target aarch64-unknown-linux-musl
@@ -433,7 +433,7 @@ jobs:
             yarn --version
           run: |
             export PATH="/usr/local/cargo/bin:$PATH"
-            cargo install --git https://github.com/swc-project/swd.git --branch init
+            ./scripts/ci/install-swc-dev.sh
             pwd
             ls -lah
             whoami
