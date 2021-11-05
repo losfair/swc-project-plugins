@@ -314,6 +314,144 @@ jobs:
           name: bindings
           path: "*.swc-pkg.tgz"
 
+  build-linux-musl:
+    name: Build - linux-musl
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to registry
+        run: |
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY_URL
+        env:
+          DOCKER_REGISTRY_URL: ghcr.io
+          DOCKER_USERNAME: ${{ github.actor }}
+          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            target/
+          key: linux-musl-publish-integration
+
+      - name: Pull docker image
+        run: |
+          docker pull ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          docker tag ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine builder
+      - name: Install swc devtool
+        run: |
+          cargo install --git https://github.com/swc-project/swd.git --branch init
+      - name: Build
+        shell: bash
+        run: swd plugin build --package --release
+
+      - name: Build - docker
+        run: |
+          docker run --rm -v $(pwd):/swc -w /swc builder sh -c "npm run build"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bindings
+          path: "*.swc-pkg.tgz"
+
+  build-linux-aarch64-musl:
+    name: Build - aarch64-unknown-linux-musl
+    runs-on: ubuntu-18.04
+
+    steps:
+      - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+      - uses: actions/checkout@v2
+
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+          target: aarch64-unknown-linux-musl
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            target/
+          key: aarch64-linux-musl-publish-integration
+
+      - name: Install cross compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-aarch64-linux-gnu -y
+      - name: Install swc devtool
+        run: |
+          cargo install --git https://github.com/swc-project/swd.git --branch init
+      - name: Build
+        shell: bash
+        run: swd plugin build --package --release --target aarch64-unknown-linux-musl
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bindings
+          path: "*.swc-pkg.tgz"
+
+  build-freebsd:
+    runs-on: macos-10.15
+    name: Build - FreeBSD
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        id: build
+        uses: vmactions/freebsd-vm@v0.1.5
+        env:
+          DEBUG: "napi:*"
+          RUSTUP_HOME: /usr/local/rustup
+          CARGO_HOME: /usr/local/cargo
+          RUSTUP_IO_THREADS: 1
+        with:
+          envs: "DEBUG RUSTUP_HOME CARGO_HOME RUSTUP_IO_THREADS"
+          usesh: true
+          mem: 6000
+          prepare: |
+            pkg install -y curl node14
+            curl -qL https://www.npmjs.com/install.sh | sh
+            npm install -g yarn
+            curl https://sh.rustup.rs -sSf --output rustup.sh
+            sh rustup.sh -y --profile minimal --default-toolchain stable
+            source /usr/local/cargo/env
+            echo "~~~~ rustc --version ~~~~"
+            rustc --version
+            echo "~~~~ node -v ~~~~"
+            node -v
+            echo "~~~~ yarn --version ~~~~"
+            yarn --version
+          run: |
+            export PATH="/usr/local/cargo/bin:$PATH"
+            cargo install --git https://github.com/swc-project/swd.git --branch init
+            pwd
+            ls -lah
+            whoami
+            env
+            freebsd-version
+            cargo build --release -p node
+            swd plugin build --package --release
+            rm -rf node_modules
+            rm -rf target
+      - name: "List files"
+        run: ls -la
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bindings
+          path: "*.swc-pkg.tgz"
+
   publish:
     name: Publish on npm
     runs-on: ubuntu-latest
@@ -321,10 +459,13 @@ jobs:
       - build
       - build-windows-i686
       - build-windows-aarch64
+      - build-linux-musl
       - build-linux-arm7
       - build-linux-aarch64
       - build-apple-silicon
       - build-android-aarch64
+      - build-freebsd
+      - build-linux-aarch64-musl
     steps:
       - uses: actions/checkout@v2
 
