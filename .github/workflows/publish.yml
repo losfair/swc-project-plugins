@@ -345,7 +345,7 @@ jobs:
           ./scripts/ci/install-swc-dev.sh
       - name: Build
         shell: bash
-        run: swd plugin build --package --release
+        run: swc-dev plugin build --package --release
 
       - name: Build - docker
         run: |
@@ -393,7 +393,7 @@ jobs:
           ./scripts/ci/install-swc-dev.sh
       - name: Build
         shell: bash
-        run: swd plugin build --package --release --target aarch64-unknown-linux-musl
+        run: swc-dev plugin build --package --release --target aarch64-unknown-linux-musl
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -440,7 +440,7 @@ jobs:
             env
             freebsd-version
             cargo build --release -p node
-            swd plugin build --package --release
+            swc-dev plugin build --package --release
             rm -rf node_modules
             rm -rf target
       - name: "List files"
