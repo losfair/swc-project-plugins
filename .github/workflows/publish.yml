@@ -346,7 +346,7 @@ jobs:
 
       - name: Build - docker
         run: |
-          docker run --rm -v $(pwd):/swc -w /swc builder sh -c "./scripts/ci/install-swc-dev.sh && swc-dev plugin build --package --release"
+          docker run --rm -v $(pwd):/swc -w /swc builder sh -c "apt install jq curl && ./scripts/ci/install-swc-dev.sh && swc-dev plugin build --package --release"
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
