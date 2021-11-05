@@ -1,6 +1,6 @@
 {
   "name": "@swc/plugin-internal-test",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Internal plugin for integration testing",
   "main": "index.js",
   "scripts": {
