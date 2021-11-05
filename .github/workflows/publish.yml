@@ -343,13 +343,10 @@ jobs:
       - name: Install swc devtool
         run: |
           ./scripts/ci/install-swc-dev.sh
-      - name: Build
-        shell: bash
-        run: swc-dev plugin build --package --release
 
       - name: Build - docker
         run: |
-          docker run --rm -v $(pwd):/swc -w /swc builder sh -c "npm run build"
+          docker run --rm -v $(pwd):/swc -w /swc builder sh -c "./scripts/ci/install-swc-dev.sh && swc-dev plugin build --package --release"
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
@@ -439,7 +436,6 @@ jobs:
             whoami
             env
             freebsd-version
-            cargo build --release -p node
             swc-dev plugin build --package --release
             rm -rf node_modules
             rm -rf target
