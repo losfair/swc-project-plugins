@@ -8,13 +8,11 @@ rustflags = [
 ]
 
 [target.x86_64-unknown-linux-musl]
-linker = "x86_64-linux-gnu-gcc"
 rustflags = [
   "-C",
   "target-feature=-crt-static",
-  "-C",
-  "link-arg=-lgcc",
 ]
+
 [target.aarch64-apple-darwin]
 rustflags = []
 
