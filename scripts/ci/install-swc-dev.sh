@@ -26,4 +26,4 @@ if [ -z "$GITHUB_PATH" ];then
 fi
 
 
-swc-dev-built/swc-dev --help
+./swc-dev-built/swc-dev --help
