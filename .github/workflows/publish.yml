@@ -21,7 +21,6 @@ jobs:
             target: x86_64-apple-darwin
             build: |
               swc-dev plugin build --package --release
-              strip -x *.node
           - host: windows-latest
             build: swc-dev plugin build --package --release
             target: x86_64-pc-windows-msvc
@@ -42,14 +41,14 @@ jobs:
               docker pull $DOCKER_REGISTRY_URL/napi-rs/napi-rs/nodejs-rust:lts-debian
               docker tag $DOCKER_REGISTRY_URL/napi-rs/napi-rs/nodejs-rust:lts-debian builder
             build: |
-              docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder swc-dev plugin build --package --release && strip swc.linux-x64-gnu.node
+              docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder swc-dev plugin build --package --release
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: |
               docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY_URL
               docker pull $DOCKER_REGISTRY_URL/napi-rs/napi-rs/nodejs-rust:lts-alpine
               docker tag $DOCKER_REGISTRY_URL/napi-rs/napi-rs/nodejs-rust:lts-alpine builder
-            build: docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder swc-dev plugin build --package --release && strip swc.linux-x64-musl.node
+            build: docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder swc-dev plugin build --package --release
           - host: macos-latest
             target: aarch64-apple-darwin
             build: |
@@ -59,7 +58,6 @@ jobs:
               SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
               export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
               swc-dev plugin build --package --release --target=aarch64-apple-darwin
-              strip -x *.node
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             setup: |
@@ -67,7 +65,6 @@ jobs:
               sudo apt-get install g++-aarch64-linux-gnu gcc-aarch64-linux-gnu -y
             build: |
               swc-dev plugin build --package --release --target=aarch64-unknown-linux-gnu
-              aarch64-linux-gnu-strip swc.linux-arm64-gnu.node
           - host: ubuntu-latest
             target: armv7-unknown-linux-gnueabihf
             setup: |
@@ -75,13 +72,11 @@ jobs:
               sudo apt-get install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf -y
             build: |
               swc-dev plugin build --package --release --target=armv7-unknown-linux-gnueabihf
-              arm-linux-gnueabihf-strip swc.linux-arm-gnueabihf.node
           - host: ubuntu-latest
             target: aarch64-linux-android
             build: |
               export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
               swc-dev plugin build --package --release --target aarch64-linux-android
-              ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip *.node
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
             downloadTarget: aarch64-unknown-linux-musl
@@ -90,11 +85,11 @@ jobs:
               docker pull ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
               docker tag ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine builder
             build: |
-              docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder sh -c "rustup toolchain install $(cat ./rust-toolchain) && rustup target add aarch64-unknown-linux-musl && swc-dev plugin build --package --release --target=aarch64-unknown-linux-musl && /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip swc.linux-arm64-musl.node"
+              docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder sh -c "rustup toolchain install $(cat ./rust-toolchain) && rustup target add aarch64-unknown-linux-musl && swc-dev plugin build --package --release --target=aarch64-unknown-linux-musl"
           - host: windows-latest
             target: aarch64-pc-windows-msvc
             build: swc-dev plugin build --package --release --target aarch64-pc-windows-msvc
-    name: stable - ${{ matrix.settings.target }} - node@14
+    name: Build - ${{ matrix.settings.target }} - node@14
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v2
@@ -153,6 +148,7 @@ jobs:
         with:
           name: bindings
           path: "*.swc-pkg.tgz"
+          if-no-files-found: error
 
   build-freebsd:
     runs-on: macos-10.15
