@@ -21,7 +21,7 @@ curl -L $BIN_URL -o swc-dev-built/swc-dev
 chmod +x swc-dev-built/swc-dev
 
 # In docker, we don't add it to path.
-if [ ! -z "$GITHUB_PATH" ];then
+if [ ! -z "${GITHUB_PATH+x}" ];then
   echo "$(pwd)/swc-dev-built" >> $GITHUB_PATH
 fi
 
