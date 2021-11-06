@@ -25,5 +25,6 @@ if [ ! -z "${GITHUB_PATH+x}" ];then
   echo "$(pwd)/swc-dev-built" >> $GITHUB_PATH
 fi
 
+ls -al ./swc-dev-built
 
 ./swc-dev-built/swc-dev --help
