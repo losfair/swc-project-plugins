@@ -19,6 +19,11 @@ echo "Using $BIN_URL"
 mkdir -p swc-dev-built
 curl -L $BIN_URL -o swc-dev-built/swc-dev
 chmod +x swc-dev-built/swc-dev
-echo "$(pwd)/swc-dev-built" >> $GITHUB_PATH
+
+# In docker, we don't add it to path.
+if [ -z "$GITHUB_PATH" ];then
+  echo "$(pwd)/swc-dev-built" >> $GITHUB_PATH
+fi
+
 
 swc-dev-built/swc-dev --help

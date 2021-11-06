@@ -84,7 +84,7 @@ jobs:
               docker pull ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
               docker tag ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine builder
             build: |
-              docker run --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder sh -c "apk add curl jq && ./scripts/ci/install-swc-dev.sh && rustup toolchain install $(cat ./rust-toolchain) && rustup target add aarch64-unknown-linux-musl && swc-dev plugin build --package --release --target=aarch64-unknown-linux-musl"
+              docker run -e 'RUNNER_OS=${{ runner.os }}' --rm -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry -v $(pwd):/build -w /build builder sh -c "apk add curl jq && ./scripts/ci/install-swc-dev.sh && rustup toolchain install $(cat ./rust-toolchain) && rustup target add aarch64-unknown-linux-musl && swc-dev plugin build --package --release --target=aarch64-unknown-linux-musl"
           - host: windows-latest
             target: aarch64-pc-windows-msvc
             build: swc-dev plugin build --package --release --target aarch64-pc-windows-msvc
