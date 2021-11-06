@@ -365,6 +365,7 @@ jobs:
         with:
           name: bindings
           path: "*.swc-pkg.tgz"
+          if-no-files-found: error
 
   build-linux-aarch64-musl:
     name: Build - aarch64-unknown-linux-musl
