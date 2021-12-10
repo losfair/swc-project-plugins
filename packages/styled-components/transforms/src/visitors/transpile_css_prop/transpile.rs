@@ -9,7 +9,7 @@ use swc_atoms::{js_word, JsWord};
 use swc_common::{collections::AHashSet, util::take::Take, Spanned, DUMMY_SP};
 use swc_ecmascript::{
     ast::*,
-    utils::{prepend, private_ident, quote_ident, quote_str, ExprExt, ExprFactory},
+    utils::{id, prepend, private_ident, quote_ident, quote_str, ExprExt, ExprFactory, Id},
     visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
@@ -31,7 +31,7 @@ struct TranspileCssProp {
 
     identifier_idx: usize,
     styled_idx: HashMap<JsWord, usize>,
-    bindings: Vec<AHashSet<JsWord>>,
+    top_level_decls: Option<AHashSet<Id>>,
 }
 
 impl TranspileCssProp {
@@ -41,13 +41,10 @@ impl TranspileCssProp {
         *idx
     }
     fn is_top_level_ident(&mut self, ident: &Ident) -> bool {
-        !self.bindings.is_empty()
-            && self.bindings[0].contains(&ident.sym)
-            && !self
-                .bindings
-                .iter()
-                .skip(1)
-                .any(|bindings| bindings.contains(&ident.sym))
+        self.top_level_decls
+            .as_ref()
+            .map(|decls| decls.contains(&id(ident)))
+            .unwrap_or(false)
     }
 }
 
@@ -332,35 +329,11 @@ impl VisitMut for TranspileCssProp {
         }
     }
 
-    fn visit_mut_function(&mut self, f: &mut Function) {
-        let mut new_params: AHashSet<JsWord> = AHashSet::default();
-        for param in &f.params {
-            new_params.extend(collect_top_level_decls(param));
-        }
-        self.bindings.push(new_params);
-        self.bindings.push(collect_top_level_decls(f));
-        f.body.visit_mut_with(self);
-        self.bindings.pop().unwrap();
-        self.bindings.pop().unwrap();
-    }
-
-    fn visit_mut_arrow_expr(&mut self, e: &mut ArrowExpr) {
-        let mut new_params: AHashSet<JsWord> = AHashSet::default();
-        for param in &e.params {
-            new_params.extend(collect_top_level_decls(param));
-        }
-        self.bindings.push(new_params);
-        self.bindings.push(collect_top_level_decls(e));
-        e.body.visit_mut_with(self);
-        self.bindings.pop().unwrap();
-        self.bindings.pop().unwrap();
-    }
-
     fn visit_mut_module(&mut self, n: &mut Module) {
         // TODO: Skip if there are no css prop usage
-        self.bindings.push(collect_top_level_decls(n));
+        self.top_level_decls = Some(collect_top_level_decls(n));
         n.visit_mut_children_with(self);
-        self.bindings.pop().unwrap();
+        self.top_level_decls = None;
 
         if let Some(import_name) = self.import_name.take() {
             let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
