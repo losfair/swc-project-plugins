@@ -6,9 +6,12 @@ use inflector::Inflector;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use swc_atoms::{js_word, JsWord};
-use swc_common::{collections::AHashSet, util::take::Take, Spanned, DUMMY_SP};
+use swc_common::{
+    chain, collections::AHashSet, util::take::Take, Mark, Spanned, SyntaxContext, DUMMY_SP,
+};
 use swc_ecmascript::{
     ast::*,
+    transforms::resolver_with_mark,
     utils::{id, prepend, private_ident, quote_ident, quote_str, ExprExt, ExprFactory, Id},
     visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
@@ -21,7 +24,17 @@ static TAG_NAME_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[a-z][a-z\\d]*(\\-[a-z][a-z\\d]*)?$").unwrap());
 
 pub fn transpile_css_prop() -> impl Fold + VisitMut {
-    as_folder(TranspileCssProp::default())
+    let mark = Mark::fresh(Mark::root());
+    chain!(
+        resolver_with_mark(mark),
+        as_folder(TranspileCssProp {
+            import_name: None,
+            injected_nodes: vec![],
+            identifier_idx: 0,
+            styled_idx: HashMap::new(),
+            top_level_ctxt: SyntaxContext::empty().apply_mark(mark),
+        }),
+    )
 }
 
 #[derive(Default)]
@@ -31,7 +44,7 @@ struct TranspileCssProp {
 
     identifier_idx: usize,
     styled_idx: HashMap<JsWord, usize>,
-    top_level_decls: Option<AHashSet<Id>>,
+    top_level_ctxt: SyntaxContext,
 }
 
 impl TranspileCssProp {
@@ -41,10 +54,10 @@ impl TranspileCssProp {
         *idx
     }
     fn is_top_level_ident(&mut self, ident: &Ident) -> bool {
-        self.top_level_decls
-            .as_ref()
-            .map(|decls| decls.contains(&id(ident)))
-            .unwrap_or(false)
+        if &*ident.sym == "radius" {
+            eprintln!("XXX {:?} {:?}", ident.span.ctxt, self.top_level_ctxt);
+        }
+        ident.span.ctxt == self.top_level_ctxt
     }
 }
 
@@ -331,9 +344,7 @@ impl VisitMut for TranspileCssProp {
 
     fn visit_mut_module(&mut self, n: &mut Module) {
         // TODO: Skip if there are no css prop usage
-        self.top_level_decls = Some(collect_top_level_decls(n));
         n.visit_mut_children_with(self);
-        self.top_level_decls = None;
 
         if let Some(import_name) = self.import_name.take() {
             let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
